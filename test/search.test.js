@@ -198,9 +198,18 @@ test('malformed provider output does not echo its body into the error', async ()
 
 test('times out while waiting for provider metadata before sending HTTP', async () => {
   const waiting = ctx();
-  waiting.llm.listProviders = () => new Promise(() => {});
-  await assert.rejects(searchHosted(waiting, { ...config, timeoutMs: 5 }, { query: 'search' },
-    undefined, async () => { throw new Error('HTTP should not start'); }), /timeout/i);
+  let metadataTimer;
+  // AbortSignal.timeout is unref'ed. Simulate pending I/O with a referenced timer
+  // so the test runner cannot exit before the 5 ms cancellation fires.
+  waiting.llm.listProviders = () => new Promise((resolve) => {
+    metadataTimer = setTimeout(() => resolve([{ id: 'openai' }]), 1000);
+  });
+  try {
+    await assert.rejects(searchHosted(waiting, { ...config, timeoutMs: 5 }, { query: 'search' },
+      undefined, async () => { throw new Error('HTTP should not start'); }), /timeout/i);
+  } finally {
+    clearTimeout(metadataTimer);
+  }
 });
 
 test('preserves cancellation while reading the provider response body', async () => {
