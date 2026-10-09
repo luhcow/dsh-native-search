@@ -1,0 +1,16 @@
+# Dependencies and generated artifacts
+node_modules/
+*.tgz
+coverage/
+*.log
+.DS_Store
+
+# Credentials and local runtime state
+.env
+.env.*
+.credentials*
+.dsh/
+
+# Machine-specific live probes and their private runtime metadata
+/scripts/live-smoke.mjs
+/test-results/

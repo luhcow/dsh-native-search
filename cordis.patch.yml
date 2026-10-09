@@ -1,0 +1,6 @@
+# Installing this bundle registers one optional search provider; it does not
+# silently replace an existing web search backend. Configure this entry and
+# web.searchProvider explicitly (see README.md).
+- insert:
+    - id: provider-web-search
+      name: '@creait/dsh-provider-web-search'
