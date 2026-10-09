@@ -34,7 +34,7 @@ test('registers an optional provider with live config availability', () => {
   apply({ web: { registerSearchProvider: (value) => { provider = value; } } }, {
     provider: { get: () => fields.provider }, model: { get: () => fields.model },
   });
-  assert.equal(provider.id, 'provider-responses');
+  assert.equal(provider.id, 'dsh-native-search');
   assert.equal(provider.available(), false);
   fields.provider = 'openai'; fields.model = 'gpt-4.1-mini';
   assert.equal(provider.available(), true);

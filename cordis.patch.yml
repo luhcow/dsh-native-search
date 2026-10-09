@@ -2,5 +2,5 @@
 # silently replace an existing web search backend. Configure this entry and
 # web.searchProvider explicitly (see README.md).
 - insert:
-    - id: provider-web-search
-      name: '@creait/dsh-provider-web-search'
+    - id: dsh-native-search
+      name: dsh-native-search

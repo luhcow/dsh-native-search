@@ -1,6 +1,6 @@
 {
-  "name": "@creait/dsh-provider-web-search",
-  "version": "0.2.0",
+  "name": "dsh-native-search",
+  "version": "0.1.0",
   "description": "DSH Native Search: strict, single-request hosted web search for DeepSeek Harness",
   "repository": {
     "type": "git",

@@ -5,7 +5,7 @@
 [![Tests](https://github.com/luhcow/dsh-native-search/actions/workflows/test.yml/badge.svg)](https://github.com/luhcow/dsh-native-search/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](<LICENSE>)
 
-这个实验性 Host 插件把**已连接模型提供商的原生托管网页搜索**接入 DSH 的 `web.search` 服务，供原有的 `web_search` 工具使用。项目名称为 **DSH Native Search**；为保持已有配置兼容，插件包名仍为 `@creait/dsh-provider-web-search`。
+这个实验性 Host 插件把**已连接模型提供商的原生托管网页搜索**接入 DSH 的 `web.search` 服务，供原有的 `web_search` 工具使用。项目名称为 **DSH Native Search**，包名、插件条目 ID 和搜索提供方 ID 统一为 **`dsh-native-search`**。
 
 搜索是一次**独立的模型请求**，走配置路由的端点与凭据引用。只发送当前搜索词，不发送对话历史，不修改 DSH 核心，也不把搜索工具注入主聊天请求。
 
@@ -27,11 +27,11 @@
 
 没有 `api` 时，`openai`、`anthropic`、`google`、`xai`、`github-copilot` 分别使用上表的默认协议。xAI/Copilot 专用适配仍属实验性，并不保证任意账号、模型或网关可用。
 
-**已移除 Moonshot `$web_search` 的 Chat Completions 多轮往返实现、`moonshot-chat` 协议及其默认路由。** 不支持普通 Chat Completions、Bedrock、Vertex、ChatGPT 订阅 OAuth 或 `openai-codex-responses` 路由。不再把 Codex/OAuth 路由暗中映射到公共 OpenAI API。这是本插件的支持范围，不代表所有 Chat Completions 接口在技术上都不可能提供原生搜索。
+**不实现 Moonshot `$web_search` 的 Chat Completions 多轮往返，也不提供 `moonshot-chat` 协议。** 不支持普通 Chat Completions、Bedrock、Vertex、ChatGPT 订阅 OAuth 或 `openai-codex-responses` 路由；不会把 Codex/OAuth 路由映射到公共 OpenAI API。这是本插件的支持范围，不代表所有 Chat Completions 接口在技术上都不可能提供原生搜索。
 
 ## 安装与配置
 
-此仓库提供可打包的 DSH 插件 bundle，要求 Node.js **20.3.0+**，当前 DSH peer 版本为 **0.2.0-rc.2**。GitHub 公开源码不等于已经发布到 npm；目前可从源码打包：
+此仓库提供独立插件 **`dsh-native-search`**，初始版本为 **0.1.0**。要求 Node.js **20.3.0+**，当前 DSH peer 版本为 **0.2.0-rc.2**。GitHub 公开源码不等于已经发布到 npm；目前可从源码打包：
 
 ```bash
 git clone https://github.com/luhcow/dsh-native-search.git
@@ -42,19 +42,20 @@ npm pack --ignore-scripts
 
 单元测试不需要安装 DSH 运行时依赖，也不会读取凭据或发出真实搜索请求。将生成的 `.tgz` 交给目标 DSH profile 的插件管理器安装；由管理器解析运行时依赖并检查版本兼容性。
 
-安装后补丁会创建 `provider-web-search` 条目，但不会自动切换搜索提供方。若管理器报告需要重启，请重启 DSH 后使用。修改本地源码不会自动替换已经安装的旧版本。未来若发布到 npm，才可使用对应的 npm 包名安装。
+安装后补丁会创建 `dsh-native-search` 条目，但不会自动切换搜索提供方。若管理器报告需要重启，请重启 DSH 后使用。修改本地源码不会自动替换已经安装的旧版本。未来若发布到 npm，才可使用对应的 npm 包名安装。
 
-在插件配置或 profile 补丁的 `provider-web-search` 条目设置：
+在插件配置中设置搜索路由，或在 profile 补丁中按 ID 覆写已安装的条目（无需再次 `insert`）：
 
 ```yaml
-- insert:
-    - id: provider-web-search
-      name: '@creait/dsh-provider-web-search'
-      config:
-        provider: anthropic
-        model: claude-sonnet-4-5
-        searchContextSize: medium
-        timeoutMs: 30000
+- id: dsh-native-search
+  config:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    searchContextSize: medium
+    timeoutMs: 30000
+- id: web
+  config:
+    searchProvider: dsh-native-search
 ```
 
 `provider` 是 DSH 模型路由 ID，`model` 是该路由上支持托管搜索的模型 ID。内置 `openai`、`anthropic`、`google`、`xai` 可以沿用默认端点和凭据名（`OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GEMINI_API_KEY`、`XAI_API_KEY`）。先在 DSH 模型设置中配置凭据；插件每次搜索重新解析引用，不缓存密钥。`github-copilot` 没有默认凭据名，必须配置 `apiKeyEnv`。
@@ -63,7 +64,7 @@ npm pack --ignore-scripts
 
 `baseURL` 应为 API 根（例如 `https://api.example.com/v1` 或 `https://api.anthropic.com`），不要填写操作端点。默认 `authMode: auto`：Anthropic 用 `x-api-key`，Gemini 用 `x-goog-api-key`，其余用 Bearer。Azure 风格端点可设 `authMode: api-key` 与 `apiVersion: v1`。远程端点要求 HTTPS，仅回环地址允许 HTTP；配置 URL 不得包含用户密码、查询参数或片段。
 
-**最后，手动在 DSH Web 搜索配置中将 `searchProvider` 选为 `provider-responses`。** 不会自动切换搜索提供方；DSH 自带搜索与本插件同时可用且未指定提供方时会报 `WEB_PROVIDER_AMBIGUOUS`。保留原来的 `fetchProvider`：本插件只搜索，正文仍由现有抓取后端处理。撤销选择或卸载即可恢复原方案。未填写模型与路由时插件注册但报告不可用。
+**最后，手动在 DSH Web 搜索配置中将 `searchProvider` 选为 `dsh-native-search`。** 不会自动切换搜索提供方；DSH 自带搜索与本插件同时可用且未指定提供方时会报 `WEB_PROVIDER_AMBIGUOUS`。保留原来的 `fetchProvider`：本插件只搜索，正文仍由现有抓取后端处理。撤销选择或卸载即可恢复原方案。未填写模型与路由时插件注册但报告不可用。
 
 ## 请求与验收契约
 
